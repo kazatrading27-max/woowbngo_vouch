@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum VoucherStatus {
+  ACTIVE
+  REDEEMED
+  REVOKED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(AGENT)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  issuedVouchers Voucher[]
+  stations       Station[]
+  auditLogs      AuditLog[]
+}
+
+model Station {
+  id          String   @id @default(cuid())
+  uuid        String
+  uuidClean   String   @unique
+  label       String
+  ownerName   String
+  phone       String?
+  address     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  vouchers    Voucher[]
+
+  @@index([label])
+}
+
+model Voucher {
+  id            String        @id @default(cuid())
+  code          String        @unique
+  formattedCode String
+  amount        Int
+  share         Int
+  daysValid     Int
+  expiresAt     DateTime?
+  status        VoucherStatus @default(ACTIVE)
+  note          String?
+  createdAt     DateTime      @default(now())
+
+  stationId  String
+  station    Station @relation(fields: [stationId], references: [id])
+  issuedById String
+  issuedBy   User    @relation(fields: [issuedById], references: [id])
+  redeemedAt DateTime?
+
+  @@index([stationId, createdAt])
+  @@index([status])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

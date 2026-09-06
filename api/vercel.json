@@ -1,0 +1,5 @@
+{
+  "version": 2,
+  "builds": [{ "src": "index.ts", "use": "@vercel/node", "config": { "includeFiles": "node_modules/.prisma/**" } }],
+  "routes": [{ "src": "/(.*)", "dest": "index.ts" }]
+}
