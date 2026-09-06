@@ -1,4 +1,4 @@
-export type Role = 'ADMIN' | 'AGENT';
+export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'AGENT';
 export type VoucherStatus = 'ACTIVE' | 'REDEEMED' | 'REVOKED' | 'EXPIRED';
 
 export interface User {

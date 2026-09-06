@@ -4,6 +4,8 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
+import { WebAuthnController } from './webauthn.controller';
+import { WebAuthnService } from './webauthn.service';
 import { resolveJwtSecret } from './jwt-secret';
 
 @Module({
@@ -14,8 +16,8 @@ import { resolveJwtSecret } from './jwt-secret';
       signOptions: { expiresIn: '12h' },
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  controllers: [AuthController, WebAuthnController],
+  providers: [AuthService, JwtStrategy, WebAuthnService],
   exports: [AuthService],
 })
 export class AuthModule {}

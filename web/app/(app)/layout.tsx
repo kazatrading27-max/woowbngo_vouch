@@ -11,14 +11,16 @@ import {
   HistoryIcon,
   UsersIcon,
   LogoutIcon,
+  ShieldIcon,
 } from '@/components/icons';
 
 const NAV = [
-  { href: '/dashboard', label: 'Dashboard', short: 'Home', Icon: HomeIcon, adminOnly: false },
-  { href: '/stations', label: 'Game PCs', short: 'PCs', Icon: MonitorIcon, adminOnly: false },
-  { href: '/vouchers/generate', label: 'Generate', short: 'Generate', Icon: BoltIcon, adminOnly: false },
-  { href: '/vouchers', label: 'Recharge History', short: 'History', Icon: HistoryIcon, adminOnly: false },
-  { href: '/users', label: 'Users', short: 'Users', Icon: UsersIcon, adminOnly: true },
+  { href: '/dashboard', label: 'Dashboard', short: 'Home', Icon: HomeIcon, adminOnly: false, mobileHidden: false },
+  { href: '/stations', label: 'Game PCs', short: 'PCs', Icon: MonitorIcon, adminOnly: false, mobileHidden: false },
+  { href: '/vouchers/generate', label: 'Generate', short: 'Generate', Icon: BoltIcon, adminOnly: false, mobileHidden: false },
+  { href: '/vouchers', label: 'Recharge History', short: 'History', Icon: HistoryIcon, adminOnly: false, mobileHidden: false },
+  { href: '/security', label: 'Security', short: 'Security', Icon: ShieldIcon, adminOnly: false, mobileHidden: true },
+  { href: '/users', label: 'Users', short: 'Users', Icon: UsersIcon, adminOnly: true, mobileHidden: false },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -90,7 +92,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-slate-200">{user.name}</p>
-              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{user.role}</p>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{user.role.replace('_', ' ')}</p>
             </div>
             <button onClick={logout} title="Sign out" className="btn-ghost !p-2">
               <LogoutIcon className="h-5 w-5" />
@@ -110,9 +112,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </span>
         </Link>
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-xs font-bold text-emerald-300 ring-1 ring-white/10">
-            {user.name.slice(0, 1).toUpperCase()}
-          </span>
+          <Link href="/security" title="Security — biometric login">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.06] text-xs font-bold text-emerald-300 ring-1 ring-white/10">
+              {user.name.slice(0, 1).toUpperCase()}
+            </span>
+          </Link>
           <button onClick={logout} className="btn-ghost !p-2">
             <LogoutIcon className="h-5 w-5" />
           </button>
@@ -129,7 +133,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         className="glass-bar fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t pb-[env(safe-area-inset-bottom)] md:hidden"
         aria-label="Primary"
       >
-        {items.map(({ href, short, Icon }) => {
+        {items
+          .filter((n) => !n.mobileHidden)
+          .map(({ href, short, Icon }) => {
           const active = isActive(pathname, href);
           const center = href === '/vouchers/generate';
           return (

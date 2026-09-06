@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto } from './users.dto';
@@ -7,8 +13,16 @@ import { CreateUserDto, UpdateUserDto } from './users.dto';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async list() {
-    const users = await this.prisma.user.findMany({ orderBy: { createdAt: 'asc' } });
+  private canSeeAll(actorRole: string) {
+    return actorRole === 'SUPER_ADMIN';
+  }
+
+  async list(actor: { id: string; role: string }) {
+    const where = this.canSeeAll(actor.role)
+      ? {}
+      // Standard admins only see themselves and agents — never other admins.
+      : { OR: [{ id: actor.id }, { role: 'AGENT' as const }] };
+    const users = await this.prisma.user.findMany({ where, orderBy: { createdAt: 'asc' } });
     return users.map((u) => ({
       id: u.id,
       email: u.email,
@@ -19,7 +33,13 @@ export class UsersService {
     }));
   }
 
-  async create(dto: CreateUserDto, actorId: string) {
+  async create(dto: CreateUserDto, actor: { id: string; role: string }) {
+    if (dto.role === 'SUPER_ADMIN') {
+      throw new ForbiddenException('Only the system itself can create another super admin.');
+    }
+    if (dto.role === 'ADMIN' && !this.canSeeAll(actor.role)) {
+      throw new ForbiddenException('Only the super admin can create admin accounts.');
+    }
     const exists = await this.prisma.user.findUnique({ where: { email: dto.email.toLowerCase() } });
     if (exists) throw new ConflictException('A user with that email already exists');
     const passwordHash = await bcrypt.hash(dto.password, 10);
@@ -32,7 +52,7 @@ export class UsersService {
       },
     });
     await this.prisma.auditLog.create({
-      data: { userId: actorId, action: 'USER_CREATED', entity: 'User', entityId: user.id, meta: { email: user.email, role: user.role } },
+      data: { userId: actor.id, action: 'USER_CREATED', entity: 'User', entityId: user.id, meta: { email: user.email, role: user.role } },
     });
     return { id: user.id, email: user.email, name: user.name, role: user.role, isActive: user.isActive, createdAt: user.createdAt };
   }
@@ -41,8 +61,21 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
 
-    if (user.id === actor.id && (dto.isActive === false || (dto.role && dto.role !== 'ADMIN'))) {
-      throw new BadRequestException('You cannot demote or deactivate your own admin account.');
+    if (user.id === actor.id && (dto.isActive === false || (dto.role && dto.role !== user.role))) {
+      throw new BadRequestException('You cannot demote or deactivate your own account.');
+    }
+
+    if (!this.canSeeAll(actor.role)) {
+      // Standard admins manage agents (and only their own profile fields) — never other admins.
+      if (user.role === 'SUPER_ADMIN' || (user.role === 'ADMIN' && user.id !== actor.id)) {
+        throw new ForbiddenException('Standard admins cannot manage other admin accounts.');
+      }
+      if (dto.role === 'ADMIN' || dto.role === 'SUPER_ADMIN') {
+        throw new ForbiddenException('Only the super admin can grant admin roles.');
+      }
+    }
+    if (dto.role === 'SUPER_ADMIN') {
+      throw new ForbiddenException('Only the system itself can create another super admin.');
     }
 
     const data: any = {};

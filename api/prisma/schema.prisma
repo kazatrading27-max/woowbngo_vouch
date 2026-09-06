@@ -9,6 +9,7 @@ datasource db {
 }
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
   AGENT
 }
@@ -31,6 +32,7 @@ model User {
   issuedVouchers Voucher[]
   stations       Station[]
   auditLogs      AuditLog[]
+  passkeys       Passkey[]
 }
 
 model Station {
@@ -84,4 +86,29 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+model Passkey {
+  id         String    @id
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicKey  Bytes
+  counter    Int       @default(0)
+  deviceType String
+  backedUp   Boolean   @default(false)
+  transports String[]  @default([])
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([userId])
+}
+
+model WebAuthnChallenge {
+  id        String   @id @default(cuid())
+  challenge String
+  userId    String?
+  type      String
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }

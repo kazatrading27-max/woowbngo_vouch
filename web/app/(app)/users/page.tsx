@@ -7,11 +7,11 @@ import { UsersIcon } from '@/components/icons';
 import type { User } from '@/lib/types';
 
 export default function UsersPage() {
-  const { user: me } = useAuth();
+  const { user: me, isSuperAdmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ email: '', password: '', name: '', role: 'AGENT' as 'ADMIN' | 'AGENT' });
+  const [form, setForm] = useState({ email: '', password: '', name: '', role: 'AGENT' as User['role'] });
   const [pwReset, setPwReset] = useState<{ [id: string]: string }>({});
 
   const load = useCallback(() => {
@@ -95,10 +95,11 @@ export default function UsersPage() {
         </div>
         <div>
           <label className="label">Role</label>
-          <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as 'ADMIN' | 'AGENT' })}>
+          <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as User['role'] })}>
             <option value="AGENT">Agent</option>
-            <option value="ADMIN">Admin</option>
+            {isSuperAdmin && <option value="ADMIN">Admin</option>}
           </select>
+          {!isSuperAdmin && <p className="mt-1 text-[11px] text-slate-500">Only the super admin can create admins.</p>}
         </div>
         <div className="md:col-span-4">
           <button className="btn-primary" disabled={busy}>
@@ -127,7 +128,7 @@ export default function UsersPage() {
                 <select
                   className="input !w-28 !py-1 text-xs"
                   value={u.role}
-                  disabled={u.id === me?.id}
+                  disabled={u.id === me?.id || u.role === 'SUPER_ADMIN'}
                   onChange={async (e) => {
                     try {
                       await patch(`/users/${u.id}`, { role: e.target.value });
@@ -138,7 +139,8 @@ export default function UsersPage() {
                   }}
                 >
                   <option value="AGENT">Agent</option>
-                  <option value="ADMIN">Admin</option>
+                  {isSuperAdmin && <option value="ADMIN">Admin</option>}
+                  {u.role === 'SUPER_ADMIN' && <option value="SUPER_ADMIN">Super Admin</option>}
                 </select>
                 <button className="btn-secondary ml-auto !px-3 !py-1.5 text-xs" onClick={() => toggleActive(u)} disabled={u.id === me?.id}>
                   {u.isActive ? 'Deactivate' : 'Activate'}
@@ -197,7 +199,7 @@ export default function UsersPage() {
                       }}
                     >
                       <option value="AGENT">Agent</option>
-                      <option value="ADMIN">Admin</option>
+                      {isSuperAdmin && <option value="ADMIN">Admin</option>}
                     </select>
                   </td>
                   <td className="px-4 py-3">

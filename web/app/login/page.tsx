@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
-import { getToken } from '@/lib/auth-helpers';
-import { get } from '@/lib/api';
-import { ShieldIcon } from '@/components/icons';
+import { getToken, saveSession } from '@/lib/auth-helpers';
+import { get, post } from '@/lib/api';
+import { ShieldIcon, FingerprintIcon } from '@/components/icons';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,6 +17,8 @@ export default function LoginPage() {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [bioBusy, setBioBusy] = useState(false);
+  const [bioSupported, setBioSupported] = useState(false);
 
   useEffect(() => {
     if (!loading && user) router.replace('/dashboard');
@@ -30,6 +32,41 @@ export default function LoginPage() {
       })
       .catch(() => setHasUsers(true));
   }, []);
+
+  useEffect(() => {
+    const available =
+      typeof window !== 'undefined' &&
+      window.PublicKeyCredential &&
+      typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function';
+    if (!available) return;
+    window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+      .then(setBioSupported)
+      .catch(() => {});
+  }, []);
+
+  async function biometricLogin() {
+    setError('');
+    setBioBusy(true);
+    try {
+      const options = await get<Record<string, unknown>>('/auth/webauthn/login/options');
+      const { startAuthentication } = await import('@simplewebauthn/browser');
+      const assertResp = await startAuthentication({ optionsJSON: options as any });
+      const res = await post<{ accessToken: string; user: any }>('/auth/webauthn/login', assertResp);
+      saveSession(res.accessToken, res.user);
+      router.replace('/dashboard');
+    } catch (err: any) {
+      const msg = String(err?.message || err?.name || 'Biometric sign-in failed');
+      setError(
+        msg.includes('NotAllowedError')
+          ? 'Biometric prompt dismissed or timed out. Try again.'
+          : msg.includes('Unauthorized')
+            ? 'This device is not registered for biometric login yet. Sign in with your password first, then enable it under Security.'
+            : msg,
+      );
+    } finally {
+      setBioBusy(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -147,6 +184,29 @@ export default function LoginPage() {
               'Create admin account'
             )}
           </button>
+
+          {mode === 'login' && bioSupported && (
+            <>
+              <div className="flex items-center gap-3 py-1">
+                <span className="h-px flex-1 bg-white/10" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">or</span>
+                <span className="h-px flex-1 bg-white/10" />
+              </div>
+              <button type="button" className="btn-secondary w-full !py-3" onClick={biometricLogin} disabled={bioBusy}>
+                {bioBusy ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500/40 border-t-emerald-400" />
+                    Waiting for Face ID…
+                  </>
+                ) : (
+                  <>
+                    <FingerprintIcon className="h-5 w-5 text-emerald-400" />
+                    Sign in with Face ID / fingerprint
+                  </>
+                )}
+              </button>
+            </>
+          )}
         </form>
 
         <p className="mt-6 text-center text-[11px] text-slate-600">

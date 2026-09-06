@@ -10,13 +10,13 @@ export class UsersController {
   constructor(private users: UsersService) {}
 
   @Get()
-  list() {
-    return this.users.list();
+  list(@CurrentUser() actor: AuthUser) {
+    return this.users.list({ id: actor.id, role: actor.role });
   }
 
   @Post()
   create(@Body() dto: CreateUserDto, @CurrentUser() actor: AuthUser) {
-    return this.users.create(dto, actor.id);
+    return this.users.create(dto, { id: actor.id, role: actor.role });
   }
 
   @Patch(':id')

@@ -131,6 +131,24 @@ export function CoinIcon({ className = base }: IconProps) {
   );
 }
 
+export function FingerprintIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12 11.5v3.5c0 1.8-.3 3.6-.9 5.2" />
+      <path d="M8.6 19.3c.6-1.3.9-2.8.9-4.3v-3.5" />
+      <path d="M5.5 17c.6-1.2.9-2.5.9-3.9v-2.6" />
+      <path d="M15.4 15.9c.2-1 .3-2 .3-3v-1.4" />
+      <path d="M18.6 15.7c.2-.9.4-1.9.4-2.8v-1.4" />
+      <path d="M6.4 8.6a6.5 6.5 0 0 1 11.2 0" />
+      <path d="M4.3 11.4c0-.3 0-.5.1-.8" />
+      <path d="M19.7 10.6v.9" />
+      <path d="M9 6.7a5 5 0 0 1 6 0" />
+      <path d="M12 9.5c.6 0 1.2.1 1.7.4" />
+      <path d="M8.6 10.5v2.6" />
+    </svg>
+  );
+}
+
 export function ShieldIcon({ className = base }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>

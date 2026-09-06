@@ -17,6 +17,16 @@ export class VouchersService {
     return v.status;
   }
 
+  // Standard admins must not see voucher histories/info issued by other admins —
+  // they see their own vouchers plus everything issued by agents. Super admin sees all.
+  private visibilityScope(actor: { id: string; role: string }): Prisma.VoucherWhereInput {
+    if (actor.role === 'SUPER_ADMIN') return {};
+    if (actor.role === 'ADMIN') {
+      return { issuedBy: { OR: [{ id: actor.id }, { role: 'AGENT' as const }] } };
+    }
+    return {};
+  }
+
   private toDto(v: any) {
     const { station, issuedBy, ...rest } = v;
     return {
@@ -98,10 +108,10 @@ export class VouchersService {
     return full.map((v) => this.toDto(v));
   }
 
-  async list(query: ListVouchersQueryDto) {
+  async list(query: ListVouchersQueryDto, actor: { id: string; role: string }) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
-    const where: Prisma.VoucherWhereInput = {};
+    const where: Prisma.VoucherWhereInput = { ...this.visibilityScope(actor) };
 
     if (query.stationId) where.stationId = query.stationId;
     if (query.issuedById) where.issuedById = query.issuedById;
@@ -158,9 +168,12 @@ export class VouchersService {
     };
   }
 
-  async stats(stationId?: string) {
+  async stats(stationId: string | undefined, actor: { id: string; role: string }) {
     const now = new Date();
-    const scope: Prisma.VoucherWhereInput = stationId ? { stationId } : {};
+    const scope: Prisma.VoucherWhereInput = {
+      ...(stationId ? { stationId } : {}),
+      ...this.visibilityScope(actor),
+    };
     const [stations, total, active, expired, redeemed, revoked, creditsIssued, creditsActive] = await Promise.all([
       stationId ? this.prisma.station.count({ where: { id: stationId } }) : this.prisma.station.count(),
       this.prisma.voucher.count({ where: scope }),
@@ -183,22 +196,27 @@ export class VouchersService {
     };
   }
 
-  async validate(dto: ValidateVoucherDto) {
+  async validate(dto: ValidateVoucherDto, actor: { id: string; role: string }) {
     const result = validateVoucherCode(dto.code, dto.uuid ?? undefined);
     let dbRecord = null;
     if (result.valid) {
       const found = await this.prisma.voucher.findUnique({
         where: { code: dto.code.trim().toUpperCase().replace(/-/g, '').replace(/ /g, '') },
-        include: { station: true, issuedBy: { select: { id: true, name: true } } },
+        include: { station: true, issuedBy: { select: { id: true, name: true, role: true } } },
       });
       if (found) {
+        const issuedByOtherAdmin =
+          actor.role !== 'SUPER_ADMIN' &&
+          found.issuedBy &&
+          found.issuedBy.role !== 'AGENT' &&
+          found.issuedBy.id !== actor.id;
         dbRecord = {
           id: found.id,
           status: this.effectiveStatus(found),
           note: found.note,
           createdAt: found.createdAt,
           station: { id: found.station.id, label: found.station.label, ownerName: found.station.ownerName, uuid: found.station.uuid },
-          issuedBy: found.issuedBy?.name ?? null,
+          issuedBy: issuedByOtherAdmin ? null : found.issuedBy?.name ?? null,
         };
       }
     }

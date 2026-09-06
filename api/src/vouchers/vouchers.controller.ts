@@ -9,18 +9,18 @@ export class VouchersController {
   constructor(private vouchers: VouchersService) {}
 
   @Get()
-  list(@Query() query: ListVouchersQueryDto) {
-    return this.vouchers.list(query);
+  list(@Query() query: ListVouchersQueryDto, @CurrentUser() actor: AuthUser) {
+    return this.vouchers.list(query, { id: actor.id, role: actor.role });
   }
 
   @Get('stats')
-  stats(@Query('stationId') stationId?: string) {
-    return this.vouchers.stats(stationId || undefined);
+  stats(@Query('stationId') stationId: string | undefined, @CurrentUser() actor: AuthUser) {
+    return this.vouchers.stats(stationId || undefined, { id: actor.id, role: actor.role });
   }
 
   @Post('validate')
-  validate(@Body() dto: ValidateVoucherDto) {
-    return this.vouchers.validate(dto);
+  validate(@Body() dto: ValidateVoucherDto, @CurrentUser() actor: AuthUser) {
+    return this.vouchers.validate(dto, { id: actor.id, role: actor.role });
   }
 
   @Post()

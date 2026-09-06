@@ -11,11 +11,11 @@ export class AuthService {
     private jwt: JwtService,
   ) {}
 
-  private tokenFor(user: { id: string; email: string; role: string; name: string }) {
+  tokenFor(user: { id: string; email: string; role: string; name: string }) {
     return this.jwt.sign({ sub: user.id, email: user.email, role: user.role, name: user.name });
   }
 
-  private publicUser(user: { id: string; email: string; name: string; role: string; isActive: boolean; createdAt: Date }) {
+  publicUser(user: { id: string; email: string; name: string; role: string; isActive: boolean; createdAt: Date }) {
     return { id: user.id, email: user.email, name: user.name, role: user.role, isActive: user.isActive, createdAt: user.createdAt };
   }
 
@@ -29,7 +29,7 @@ export class AuthService {
     }
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.user.create({
-      data: { email: dto.email.toLowerCase(), passwordHash, name: dto.name, role: 'ADMIN' },
+      data: { email: dto.email.toLowerCase(), passwordHash, name: dto.name, role: 'SUPER_ADMIN' },
     });
     const accessToken = this.tokenFor(user);
     return { accessToken, user: this.publicUser(user) };

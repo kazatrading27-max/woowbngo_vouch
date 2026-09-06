@@ -1,5 +1,7 @@
 import { IsEmail, IsIn, IsOptional, IsString, IsBoolean, MinLength, MaxLength } from 'class-validator';
 
+const ASSIGNABLE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'AGENT'] as const;
+
 export class CreateUserDto {
   @IsEmail()
   email: string;
@@ -14,14 +16,14 @@ export class CreateUserDto {
   @MaxLength(80)
   name: string;
 
-  @IsIn(['ADMIN', 'AGENT'])
-  role: 'ADMIN' | 'AGENT';
+  @IsIn(ASSIGNABLE_ROLES)
+  role: (typeof ASSIGNABLE_ROLES)[number];
 }
 
 export class UpdateUserDto {
   @IsOptional()
-  @IsIn(['ADMIN', 'AGENT'])
-  role?: 'ADMIN' | 'AGENT';
+  @IsIn(ASSIGNABLE_ROLES)
+  role?: (typeof ASSIGNABLE_ROLES)[number];
 
   @IsOptional()
   @IsBoolean()
