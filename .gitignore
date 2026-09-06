@@ -36,3 +36,6 @@ android/*.log
 android/keystore-info.txt
 android/app/
 android/build/
+
+# Stray Android SDK copy (never commit the SDK)
+AndroidSDK/
