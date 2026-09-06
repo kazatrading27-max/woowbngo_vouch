@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { get, post } from '@/lib/api';
+import { CopyIcon, CheckIcon, BoltIcon, PrinterIcon } from '@/components/icons';
 import type { Station, Voucher } from '@/lib/types';
 
 const AMOUNT_PRESETS = [100, 250, 500, 1000, 2500, 5000, 9750];
@@ -29,6 +30,8 @@ function GenerateInner() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [results, setResults] = useState<Voucher[] | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     get<Station[]>('/stations')
@@ -73,6 +76,14 @@ function GenerateInner() {
       .map((v) => `${v.formattedCode}  —  ${v.amount} credits${v.expiresAt ? `  —  expires ${new Date(v.expiresAt).toLocaleDateString()}` : '  —  never expires'}`)
       .join('\n');
     navigator.clipboard.writeText(text);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 1500);
+  }
+
+  function copyOne(v: Voucher) {
+    navigator.clipboard.writeText(v.formattedCode);
+    setCopiedId(v.id);
+    setTimeout(() => setCopiedId(null), 1500);
   }
 
   function printView() {
@@ -103,18 +114,29 @@ function GenerateInner() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Generate vouchers</h1>
+    <div className="space-y-5">
+      <div className="animate-fade-up">
+        <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Generate vouchers</h1>
+        <p className="mt-0.5 text-sm text-slate-400">Hardware-locked codes, signed for one PC only</p>
+      </div>
 
       {stations.length === 0 && !error && (
-        <p className="card text-sm text-slate-400">
-          No game PCs registered yet. <Link href="/stations" className="text-emerald-400 underline">Register one first</Link>.
+        <p className="card animate-scale-in text-sm text-slate-400">
+          No game PCs registered yet.{' '}
+          <Link href="/stations" className="font-semibold text-emerald-400 underline">
+            Register one first
+          </Link>
+          .
         </p>
       )}
-      {error && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>}
+      {error && (
+        <p className="animate-scale-in rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300 ring-1 ring-inset ring-red-500/20">
+          {error}
+        </p>
+      )}
 
-      <form onSubmit={submit} className="card space-y-5">
-        <div className="grid gap-4 md:grid-cols-2">
+      <form onSubmit={submit} className="card animate-fade-up space-y-5" style={{ animationDelay: '0.05s' }}>
+        <div className="grid gap-5 md:grid-cols-2">
           <div>
             <label className="label">Game PC</label>
             <select className="input" value={stationId} onChange={(e) => setStationId(e.target.value)} required>
@@ -125,8 +147,9 @@ function GenerateInner() {
               ))}
             </select>
             {selected && (
-              <p className="mt-1 text-xs text-slate-500">
-                {selected.phone ? `${selected.phone} · ` : ''}{selected.address || ''} · UUID: {selected.uuid}
+              <p className="mt-1.5 truncate text-xs text-slate-500">
+                {selected.phone ? `${selected.phone} · ` : ''}
+                {selected.address || ''} · <span className="font-mono">{selected.uuid}</span>
               </p>
             )}
           </div>
@@ -141,7 +164,11 @@ function GenerateInner() {
                     setAmount(a);
                     setCustomAmount('');
                   }}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium ${!customAmount && amount === a ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                  className={`rounded-xl px-3 py-1.5 text-sm font-semibold transition-all duration-200 active:scale-95 ${
+                    !customAmount && amount === a
+                      ? 'bg-gradient-to-b from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                      : 'bg-white/[0.06] text-slate-300 hover:bg-white/[0.12]'
+                  }`}
                 >
                   {a.toLocaleString()}
                 </button>
@@ -159,59 +186,107 @@ function GenerateInner() {
           </div>
           <div>
             <label className="label">Valid for (days, 0 = never expires)</label>
-            <input className="input" type="number" min={0} max={65535} value={daysValid} onChange={(e) => setDaysValid(parseInt(e.target.value || '0', 10))} />
+            <input
+              className="input"
+              type="number"
+              min={0}
+              max={65535}
+              value={daysValid}
+              onChange={(e) => setDaysValid(parseInt(e.target.value || '0', 10))}
+            />
           </div>
           <div>
-            <label className="label">Commission share (%)</label>
-            <input className="input" type="number" min={0} max={100} value={share} onChange={(e) => setShare(parseInt(e.target.value || '0', 10))} />
+            <label className="label">
+              Commission share <span className="text-emerald-400">{share}%</span>
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={share}
+              onChange={(e) => setShare(parseInt(e.target.value, 10))}
+              className="mt-2 w-full accent-emerald-500"
+            />
           </div>
           <div>
             <label className="label">Count (1–50)</label>
-            <input className="input" type="number" min={1} max={50} value={count} onChange={(e) => setCount(parseInt(e.target.value || '1', 10))} />
+            <input
+              className="input"
+              type="number"
+              min={1}
+              max={50}
+              value={count}
+              onChange={(e) => setCount(parseInt(e.target.value || '1', 10))}
+            />
           </div>
           <div>
             <label className="label">Note (optional)</label>
             <input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. weekly recharge for June" />
           </div>
         </div>
-        <button type="submit" className="btn-primary" disabled={busy || !stationId}>
-          {busy ? 'Generating…' : `Generate ${count} voucher${count > 1 ? 's' : ''}`}
+        <button type="submit" className="btn-primary w-full sm:w-auto" disabled={busy || !stationId}>
+          {busy ? (
+            <>
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              Generating…
+            </>
+          ) : (
+            <>
+              <BoltIcon className="h-4 w-4" />
+              Generate {count} voucher{count > 1 ? 's' : ''}
+            </>
+          )}
         </button>
       </form>
 
       {results && (
-        <div className="card space-y-4">
+        <div className="card animate-scale-in space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-emerald-400">{results.length} voucher(s) generated</h2>
+            <h2 className="flex items-center gap-2 text-base font-semibold text-emerald-300">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/15">
+                <CheckIcon className="h-4 w-4" />
+              </span>
+              {results.length} voucher{results.length > 1 ? 's' : ''} generated
+            </h2>
             <div className="flex gap-2">
-              <button className="btn-secondary" onClick={copyAll}>Copy all</button>
-              <button className="btn-secondary" onClick={printView}>Print</button>
+              <button className="btn-secondary" onClick={copyAll}>
+                {copiedAll ? <CheckIcon className="h-4 w-4 text-emerald-400" /> : <CopyIcon className="h-4 w-4" />}
+                Copy all
+              </button>
+              <button className="btn-secondary" onClick={printView}>
+                <PrinterIcon className="h-4 w-4" />
+                Print
+              </button>
             </div>
           </div>
-          <div className="space-y-2">
+          <ul className="stagger space-y-2">
             {results.map((v) => (
-              <div key={v.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3">
-                <div>
-                  <p className="font-mono text-base font-bold tracking-wider text-emerald-300">{v.formattedCode}</p>
-                  <p className="text-xs text-slate-500">
+              <li
+                key={v.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/[0.06] bg-slate-950/60 px-4 py-3 transition-colors hover:border-emerald-500/30"
+              >
+                <div className="min-w-0">
+                  <p className="break-all font-mono text-sm font-bold tracking-wider text-emerald-300 md:text-base">
+                    {v.formattedCode}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
                     {v.amount.toLocaleString()} credits · share {v.share}% ·{' '}
                     {v.expiresAt ? `expires ${new Date(v.expiresAt).toLocaleDateString()}` : 'never expires'}
                   </p>
                 </div>
-                <button
-                  className="btn-secondary !px-3 !py-1.5 text-xs"
-                  onClick={() => navigator.clipboard.writeText(v.formattedCode)}
-                >
-                  Copy
+                <button className="btn-secondary !px-3 !py-1.5 text-xs" onClick={() => copyOne(v)}>
+                  {copiedId === v.id ? <CheckIcon className="h-3.5 w-3.5 text-emerald-400" /> : <CopyIcon className="h-3.5 w-3.5" />}
+                  {copiedId === v.id ? 'Copied' : 'Copy'}
                 </button>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
           <p className="text-xs text-slate-500">
-            Each code works only on the selected PC&apos;s machine UUID and only once (the game PC marks it used on redemption).{' '}
+            Each code works only on the selected PC&apos;s machine UUID and only once (the game PC marks it used on
+            redemption).{' '}
             {selected && (
-              <Link href={`/stations/${selected.id}`} className="text-emerald-400 hover:underline">
-                View {selected.label}&apos;s voucher history →
+              <Link href={`/stations/${selected.id}`} className="font-semibold text-emerald-400 hover:underline">
+                View {selected.label}&apos;s history →
               </Link>
             )}
           </p>

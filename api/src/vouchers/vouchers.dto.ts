@@ -57,6 +57,23 @@ export class ListVouchersQueryDto {
   status?: string;
 
   @IsOptional()
+  @IsString()
+  issuedById?: string;
+
+  @IsOptional()
+  @IsString()
+  from?: string;
+
+  @IsOptional()
+  @IsString()
+  to?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  q?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)

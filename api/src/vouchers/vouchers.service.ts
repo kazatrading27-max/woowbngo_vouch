@@ -104,6 +104,28 @@ export class VouchersService {
     const where: Prisma.VoucherWhereInput = {};
 
     if (query.stationId) where.stationId = query.stationId;
+    if (query.issuedById) where.issuedById = query.issuedById;
+    if (query.from || query.to) {
+      const range: Prisma.DateTimeFilter = {};
+      const fromDate = query.from ? new Date(`${query.from}T00:00:00.000Z`) : null;
+      const toDate = query.to ? new Date(`${query.to}T23:59:59.999Z`) : null;
+      if (fromDate && !isNaN(fromDate.getTime())) range.gte = fromDate;
+      if (toDate && !isNaN(toDate.getTime())) range.lte = toDate;
+      if (range.gte || range.lte) where.createdAt = range;
+    }
+    const q = query.q?.trim();
+    if (q) {
+      where.AND = [
+        {
+          OR: [
+            { formattedCode: { contains: q, mode: 'insensitive' } },
+            { station: { label: { contains: q, mode: 'insensitive' } } },
+            { station: { ownerName: { contains: q, mode: 'insensitive' } } },
+            { note: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+      ];
+    }
     if (query.status) {
       if (query.status === 'EXPIRED') {
         where.status = 'ACTIVE';
