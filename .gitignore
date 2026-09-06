@@ -1,8 +1,28 @@
+# Dependencies
 node_modules/
-.next/
+
+# Build outputs
 dist/
+.next/
+out/
+*.tsbuildinfo
+
+# Environment & secrets (keep the examples, never real credentials)
 .env
-.env.local
+.env.*
+!.env.example
+
+# Logs
 *.log
-.DS_Store
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# Deploy / tooling caches
 .vercel
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
