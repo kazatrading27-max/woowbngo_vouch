@@ -12,7 +12,8 @@ let cachedHandler: RequestListener | null = null;
 async function bootstrap(): Promise<RequestListener> {
   if (cachedHandler) return cachedHandler;
   const adapter = new ExpressAdapter(server);
-  await createApp(adapter);
+  const app = await createApp(adapter);
+  await app.init();
   cachedHandler = server;
   return cachedHandler;
 }
