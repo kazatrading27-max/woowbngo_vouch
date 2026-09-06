@@ -26,3 +26,13 @@ coverage/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Android APK build (keystore + artifacts are secrets/binaries, never commit)
+android/*.jks
+android/*.keystore
+android/*.apk
+android/*.aab
+android/*.log
+android/keystore-info.txt
+android/app/
+android/build/

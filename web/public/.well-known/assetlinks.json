@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.wowbingo.vouchers",
+    "sha256_cert_fingerprints": [
+      "14:8A:26:BE:69:93:09:F3:70:CC:B6:93:EF:F3:33:E8:CE:84:4E:CB:5E:C8:9F:74:F6:2E:65:88:87:F4:04:6F"
+    ]
+  }
+}]
