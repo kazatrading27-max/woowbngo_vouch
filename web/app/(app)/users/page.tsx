@@ -188,7 +188,7 @@ export default function UsersPage() {
                     <select
                       className="input !w-28 !py-1 text-xs"
                       value={u.role}
-                      disabled={u.id === me?.id}
+                      disabled={u.id === me?.id || u.role === 'SUPER_ADMIN'}
                       onChange={async (e) => {
                         try {
                           await patch(`/users/${u.id}`, { role: e.target.value });
@@ -200,6 +200,7 @@ export default function UsersPage() {
                     >
                       <option value="AGENT">Agent</option>
                       {isSuperAdmin && <option value="ADMIN">Admin</option>}
+                      {u.role === 'SUPER_ADMIN' && <option value="SUPER_ADMIN">Super Admin</option>}
                     </select>
                   </td>
                   <td className="px-4 py-3">
